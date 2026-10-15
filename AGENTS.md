@@ -14,17 +14,18 @@
 ```text
 # 1. 读项目记忆（MCP，硬门禁，不读不许开任务）
 read_memory("<项目名>")
-# 2. 报名字（取语义名，别用平台默认值，别跟别人撞）
-register_name("<客户端>-<语义名>")
-# 3. 认领一个角色（怎么选见第 2 节；开箱模式可直接认领 role-<语义名> 自动登记）
+# 2. 认领一个角色（怎么选见第 2 节；开箱模式可直接认领 role-<语义名> 自动登记）
 claim_role("role-xxx")
-# 4. 声明任务，拿到 task_id
+# 3. 声明任务，拿到 task_id
 start_task("<项目名>", "任务名", "要干什么")
-# 5. 干
-# 6. 收工
+# 4. 干
+# 5. 收工
 finish_task(task_id, "结果")
 append_memory("<项目名>", "时间 完成了X 证据Y 下一步Z")
 ```
+
+**认领即身份，不用再 `register_name`。** 服务端按认领的角色认人；实测认领后再
+`register_name` 撞名，会分出永远用不上的 `role-xxx#2` 死 key。显示名用名册规范名即可。
 
 **项目记忆（MCP，默认 `http://127.0.0.1:8000/mcp`）是唯一事实源。**
 本文件和智能体自身的记忆都只是背景参考；冲突时以项目记忆为准。
@@ -135,6 +136,21 @@ git -c http.extraHeader="Authorization: Basic $AUTH" push -u origin main
 ——它们不是代码，复制进去等于制造第二份会过期的副本。这类内容留在本地目录，
 在项目总清单里用一句话说明本地路径即可。脚本对"只有文档没有代码"的目录会直接拒绝。
 
+### 托管方式：GitHub 也通（2026-10 实测）
+
+不一定非要自建 Git 服务，GitHub 公开 / 私有仓同样跑得动这套框架。两条实测结论：
+
+1. **git smart HTTP 只认 Basic 认证。** 同一枚令牌，REST API 接受 `Authorization: token`，
+   git 端点却不认，报 `remote: invalid credentials`。必须把令牌过 base64 当密码，
+   且走环境变量 + `http.extraHeader`，不落 `.git/config`：
+   ```bash
+   BASIC=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64)
+   http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 \
+   git -c http.extraHeader="Authorization: Basic $BASIC" push -u origin main
+   ```
+2. **别用 API `push_files` 推整仓文件。** 它要 LLM 全文转写，实测 15 个文件里 4 个被改花
+   （丢字、错路径、丢可执行位）；git 通道才是字节级精确。
+
 ---
 
 ## 5. 常见环境坑（实测）
@@ -147,6 +163,7 @@ git -c http.extraHeader="Authorization: Basic $AUTH" push -u origin main
 | **仓库名只用 ASCII** | 中文 slug 进 URL 会出问题 | slug 用英文；显示名写进 `AGENTS.md` 标题和共享记忆 project key |
 | **Shell 不共享环境变量** | 一次调用一个新 shell，上一条 `export` 下条就没了 | 令牌和命令写在**同一条**里：`GOGS_TOKEN='...' python3 new_project.py ...` |
 | **Cookie 绑域名** | CSRF Cookie 可能绑 `localhost` | Git 服务一律用 `localhost` 访问 |
+| **git smart HTTP 只认 Basic** | REST API 认 `Authorization: token`，git 端点不认，报 `remote: invalid credentials` | `git -c http.extraHeader="Authorization: Basic <base64(x-access-token:令牌)>" push`；令牌取环境变量，不落 `.git/config` |
 
 ---
 
