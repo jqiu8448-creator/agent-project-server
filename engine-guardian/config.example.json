@@ -1,0 +1,29 @@
+{
+  "_说明": "engine-guardian 配置。复制为 config.json 后按需修改；改完重启守护器生效。",
+
+  "check_interval_sec": 30,
+  "idle_minutes": 30,
+  "auto_start": false,
+
+  "services": [
+    {
+      "name": "Gogs 代码服务器",
+      "port": 3000,
+      "match": "gogs web",
+      "start_cmd": null
+    },
+    {
+      "name": "你自己的服务",
+      "port": 8000,
+      "match": "python3 /完整/路径/service.py",
+      "start_cmd": null
+    }
+  ],
+
+  "_可选项": {
+    "idle_minutes": "无 running 任务后，累计多少分钟自动关闭。默认 30。想更灵敏就改 10，懒得频繁开就改 60。",
+    "auto_start": "false = 只关不开。macOS 上由 launchd 拉起的守护进程没有 ~/Desktop 权限，去启动桌面脚本会报 Operation not permitted，建议保持 false。",
+    "services[].match": "pgrep -f 用的匹配串，必须能唯一认出这个服务，别写太宽。改之前先 pgrep -f \"<串>\" 验证只命中一个。",
+    "services[].start_cmd": "auto_start=true 时用。填 null 就只关不开。"
+  }
+}

@@ -1,0 +1,4 @@
+# memory-server 依赖官方 MCP Python SDK（streamable-http 服务端）。
+# 本仓库其余部分（monitor.py / engine-guardian / scripts）只用标准库。
+# 以下版本是开发时实际测试通过的版本。
+mcp>=1.30.0
